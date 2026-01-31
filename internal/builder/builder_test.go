@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/signer"
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/types"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/signer"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
 )
 
 // Helper to create a test signer

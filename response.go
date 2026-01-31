@@ -3,7 +3,7 @@ package relayer
 import (
 	"context"
 
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/types"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
 )
 
 // ClientRelayerTransactionResponse wraps a relayer transaction response.

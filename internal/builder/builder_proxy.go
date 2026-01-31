@@ -10,9 +10,9 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/GoPolymarket/builder-relayer-go-client/internal/utils"
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/signer"
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/types"
+	"github.com/GoPolymarket/go-builder-relayer-client/internal/utils"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/signer"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
 )
 
 const defaultGasLimit = 10_000_000

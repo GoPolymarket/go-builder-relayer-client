@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/types"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
 )
 
 func DeriveProxyWalletAddress(eoa string, proxyFactory string) (string, error) {

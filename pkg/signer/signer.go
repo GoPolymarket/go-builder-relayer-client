@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/types"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
 )
 
 // Signer defines the interface for an EIP-712 capable signing entity.

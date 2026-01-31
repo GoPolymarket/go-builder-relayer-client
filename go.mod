@@ -1,4 +1,4 @@
-module github.com/GoPolymarket/builder-relayer-go-client
+module github.com/GoPolymarket/go-builder-relayer-client
 
 go 1.24.0
 

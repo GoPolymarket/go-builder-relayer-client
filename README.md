@@ -1,8 +1,10 @@
 # Go Polymarket Builder Relayer Client
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/GoPolymarket/builder-relayer-go-client.svg)](https://pkg.go.dev/github.com/GoPolymarket/builder-relayer-go-client)
-[![Go Report Card](https://goreportcard.com/badge/github.com/GoPolymarket/builder-relayer-go-client)](https://goreportcard.com/report/github.com/GoPolymarket/builder-relayer-go-client)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Reference](https://pkg.go.dev/badge/github.com/GoPolymarket/go-builder-relayer-client.svg)](https://pkg.go.dev/github.com/GoPolymarket/go-builder-relayer-client)
+[![Go Report Card](https://goreportcard.com/badge/github.com/GoPolymarket/go-builder-relayer-client)](https://goreportcard.com/report/github.com/GoPolymarket/go-builder-relayer-client)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
+**Official docs alignment:** Implements Polymarket Order Attribution (builder auth headers for leaderboard/grants) and the Relayer Client flow (gasless transactions + Safe/Proxy deployment; builder authentication required with remote signing recommended); official docs: [Order Attribution](https://docs.polymarket.com/developers/builders/order-attribution), [Relayer Client](https://docs.polymarket.com/developers/builders/relayer-client).
 
 A robust, type-safe Go client library for interacting with the **Polymarket Relayer** infrastructure. This SDK enables developers to execute gasless meta-transactions on Polygon, seamlessly integrating with Polymarket's exchange protocol.
 
@@ -20,7 +22,7 @@ A robust, type-safe Go client library for interacting with the **Polymarket Rela
 ## 📦 Installation
 
 ```bash
-go get github.com/GoPolymarket/builder-relayer-go-client
+go get github.com/GoPolymarket/go-builder-relayer-client
 ```
 
 ## 🛠 Configuration
@@ -45,8 +47,8 @@ package main
 
 import (
     "os"
-    relayer "github.com/GoPolymarket/builder-relayer-go-client"
-    "github.com/GoPolymarket/builder-relayer-go-client/pkg/signer"
+    relayer "github.com/GoPolymarket/go-builder-relayer-client"
+    "github.com/GoPolymarket/go-builder-relayer-client/pkg/signer"
 )
 
 func main() {
@@ -86,7 +88,7 @@ func main() {
 import (
     "context"
     "fmt"
-    "github.com/GoPolymarket/builder-relayer-go-client/pkg/types"
+    "github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
 )
 
 func executeTx(client *relayer.RelayClient) {
@@ -154,4 +156,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.

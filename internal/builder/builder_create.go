@@ -8,9 +8,9 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 
-	"github.com/GoPolymarket/builder-relayer-go-client/internal/utils"
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/signer"
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/types"
+	"github.com/GoPolymarket/go-builder-relayer-client/internal/utils"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/signer"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
 )
 
 func BuildSafeCreateTransactionRequest(s signer.Signer, safeContractConfig types.SafeContractConfig, args types.SafeCreateTransactionArgs) (*types.TransactionRequest, error) {

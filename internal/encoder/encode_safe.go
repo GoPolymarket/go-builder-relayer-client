@@ -9,8 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
-	"github.com/GoPolymarket/builder-relayer-go-client/internal/utils"
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/types"
+	"github.com/GoPolymarket/go-builder-relayer-client/internal/utils"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
 )
 
 var multisendABI abi.ABI

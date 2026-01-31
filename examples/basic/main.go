@@ -6,9 +6,9 @@ import (
 	"os"
 	"strconv"
 
-	relayer "github.com/GoPolymarket/builder-relayer-go-client"
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/signer"
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/types"
+	relayer "github.com/GoPolymarket/go-builder-relayer-client"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/signer"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
 )
 
 func main() {

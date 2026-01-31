@@ -1,7 +1,7 @@
 package relayer
 
 import (
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/types"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
 )
 
 var amoyConfig = types.ContractConfig{

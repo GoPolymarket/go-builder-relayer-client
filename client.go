@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoPolymarket/builder-relayer-go-client/internal/builder"
-	"github.com/GoPolymarket/builder-relayer-go-client/internal/encoder"
-	"github.com/GoPolymarket/builder-relayer-go-client/internal/utils"
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/signer"
-	"github.com/GoPolymarket/builder-relayer-go-client/pkg/types"
+	"github.com/GoPolymarket/go-builder-relayer-client/internal/builder"
+	"github.com/GoPolymarket/go-builder-relayer-client/internal/encoder"
+	"github.com/GoPolymarket/go-builder-relayer-client/internal/utils"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/signer"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
 )
 
 // RelayClient provides access to Polymarket relayer endpoints.
