@@ -17,15 +17,10 @@ func createTestSigner(t *testing.T) signer.Signer {
 	key, err := crypto.GenerateKey()
 	require.NoError(t, err)
 
-	s := &signer.PrivateKeySigner{}
-	// Manually setting fields since we don't want to expose private fields in a real test but
-	// for this internal test we might need a constructor that accepts *ecdsa.PrivateKey
-	// or just use NewPrivateKeySigner with hex.
-
 	keyBytes := crypto.FromECDSA(key)
 	hexKey := common.Bytes2Hex(keyBytes)
 
-	s, err = signer.NewPrivateKeySigner(hexKey, 80002)
+	s, err := signer.NewPrivateKeySigner(hexKey, 80002)
 	require.NoError(t, err)
 
 	return s

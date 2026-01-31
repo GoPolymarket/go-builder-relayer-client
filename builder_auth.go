@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 const (
@@ -224,8 +223,4 @@ func decodeSecret(secret string) ([]byte, error) {
 		return decoded, nil
 	}
 	return nil, fmt.Errorf("invalid base64 secret: %w", err)
-}
-
-func hexEncodeSignature(sig []byte) string {
-	return hexutil.Encode(sig)
 }
