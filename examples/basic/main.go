@@ -22,12 +22,21 @@ func main() {
 		panic(err)
 	}
 
-	builderCfg := &relayer.BuilderConfig{
-		Local: &relayer.BuilderCredentials{
+	builderCfg := &relayer.BuilderConfig{}
+	if remoteHost := os.Getenv("BUILDER_REMOTE_HOST"); remoteHost != "" {
+		builderCfg.Remote = &relayer.BuilderRemoteConfig{
+			Host:  remoteHost,
+			Token: os.Getenv("BUILDER_REMOTE_TOKEN"),
+		}
+	} else {
+		builderCfg.Local = &relayer.BuilderCredentials{
 			Key:        os.Getenv("BUILDER_API_KEY"),
 			Secret:     os.Getenv("BUILDER_SECRET"),
 			Passphrase: os.Getenv("BUILDER_PASS_PHRASE"),
-		},
+		}
+	}
+	if !builderCfg.IsValid() {
+		panic("builder authentication is required: set BUILDER_REMOTE_HOST or local BUILDER_* env vars")
 	}
 
 	client, err := relayer.NewRelayClient(relayerURL, chainID, signerInstance, builderCfg, types.RelayerTxSafe)

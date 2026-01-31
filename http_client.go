@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	defaultMaxRetries = 3
-	defaultBaseDelay  = 500 * time.Millisecond
+	defaultMaxRetries  = uint(3)
+	defaultBaseDelay   = 500 * time.Millisecond
+	maxBackoffExponent = uint(10)
 )
 
 type RequestOptions struct {
@@ -64,11 +65,15 @@ func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *Reques
 	}
 
 	var lastErr error
-	
-	for attempt := 0; attempt <= defaultMaxRetries; attempt++ {
+
+	for attempt := uint(0); attempt <= defaultMaxRetries; attempt++ {
 		if attempt > 0 {
 			// Exponential backoff with jitter could be better, but simple exponential is fine for now
-			delay := defaultBaseDelay * time.Duration(1<<uint(attempt-1))
+			exp := attempt - 1
+			if exp > maxBackoffExponent {
+				exp = maxBackoffExponent
+			}
+			delay := defaultBaseDelay * time.Duration(1<<exp)
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -86,7 +91,7 @@ func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *Reques
 		if err != nil {
 			return fmt.Errorf("build request: %w", err)
 		}
-		
+
 		if req.Header == nil {
 			req.Header = http.Header{}
 		}
@@ -105,10 +110,12 @@ func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *Reques
 			lastErr = fmt.Errorf("request failed: %w", err)
 			continue // Retry on network errors
 		}
-		
+
 		respBytes, err := io.ReadAll(resp.Body)
-		resp.Body.Close() // Close immediately after reading
-		
+		if closeErr := resp.Body.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+
 		if err != nil {
 			lastErr = fmt.Errorf("read response: %w", err)
 			continue

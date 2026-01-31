@@ -9,19 +9,32 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 const (
-	HeaderPolyBuilderAPIKey     = "POLY_BUILDER_API_KEY"
+	// #nosec G101 -- header names, not hardcoded credentials.
+	HeaderPolyBuilderAPIKey = "POLY_BUILDER_API_KEY"
+	// #nosec G101 -- header names, not hardcoded credentials.
 	HeaderPolyBuilderPassphrase = "POLY_BUILDER_PASSPHRASE"
 	HeaderPolyBuilderSignature  = "POLY_BUILDER_SIGNATURE"
 	HeaderPolyBuilderTimestamp  = "POLY_BUILDER_TIMESTAMP"
 )
+
+const builderTimestampMillisThreshold = int64(1_000_000_000_000)
+
+func normalizeBuilderTimestamp(timestamp int64) int64 {
+	if timestamp == 0 {
+		return time.Now().UnixMilli()
+	}
+	if timestamp < builderTimestampMillisThreshold {
+		return timestamp * 1000
+	}
+	return timestamp
+}
 
 // BuilderCredentials represents builder attribution credentials.
 type BuilderCredentials struct {
@@ -77,15 +90,13 @@ func (c *BuilderConfig) Headers(ctx context.Context, method, path string, body *
 }
 
 func buildBuilderHeadersLocal(creds *BuilderCredentials, method, path string, body *string, timestamp int64) (http.Header, error) {
-	if creds == nil {
+	if creds == nil || creds.Key == "" || creds.Secret == "" || creds.Passphrase == "" {
 		return nil, types.ErrMissingBuilderConfig
 	}
-	if timestamp == 0 {
-		timestamp = time.Now().Unix()
-	}
+	timestamp = normalizeBuilderTimestamp(timestamp)
 	message := fmt.Sprintf("%d%s%s", timestamp, method, path)
 	if body != nil && *body != "" {
-		message += strings.ReplaceAll(*body, "'", "\"")
+		message += *body
 	}
 	// HMAC signature
 	sig, err := SignHMAC(creds.Secret, message)
@@ -105,20 +116,23 @@ func buildBuilderHeadersRemote(ctx context.Context, remote *BuilderRemoteConfig,
 	if remote == nil || remote.Host == "" {
 		return nil, types.ErrMissingBuilderConfig
 	}
-	if timestamp == 0 {
-		timestamp = time.Now().Unix()
-	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	var normalizedTimestamp int64
+	if timestamp != 0 {
+		normalizedTimestamp = normalizeBuilderTimestamp(timestamp)
+	}
 	payload := map[string]interface{}{
-		"method":    method,
-		"path":      path,
-		"body":      "",
-		"timestamp": timestamp,
+		"method": method,
+		"path":   path,
+		"body":   "",
 	}
 	if body != nil {
 		payload["body"] = *body
+	}
+	if normalizedTimestamp != 0 {
+		payload["timestamp"] = normalizedTimestamp
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {

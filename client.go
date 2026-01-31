@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -312,15 +313,31 @@ func (c *RelayClient) PollUntilState(ctx context.Context, transactionID string, 
 }
 
 func (c *RelayClient) send(ctx context.Context, path string, method string, options *RequestOptions, out interface{}) error {
-	url := c.relayerURL + path
-	return c.httpClient.Do(ctx, method, url, options, out)
-}
+	if options == nil {
+		options = &RequestOptions{}
+	}
 
-func (c *RelayClient) sendAuthedRequest(ctx context.Context, method, path string, body string, out interface{}) error {
-	headers := http.Header{}
+	signedPath := path
+	if len(options.Params) > 0 {
+		q := url.Values{}
+		for k, v := range options.Params {
+			q.Set(k, v)
+		}
+		if encoded := q.Encode(); encoded != "" {
+			signedPath = path + "?" + encoded
+		}
+	}
+
+	headers := options.Headers
+	if headers == nil {
+		headers = http.Header{}
+	}
 	if c.builderConfig != nil && c.builderConfig.IsValid() {
-		signBody := body
-		headersToAdd, err := c.builderConfig.Headers(ctx, method, path, &signBody, 0)
+		signBody := ""
+		if len(options.Body) > 0 {
+			signBody = string(options.Body)
+		}
+		headersToAdd, err := c.builderConfig.Headers(ctx, method, signedPath, &signBody, 0)
 		if err != nil {
 			return err
 		}
@@ -329,8 +346,17 @@ func (c *RelayClient) sendAuthedRequest(ctx context.Context, method, path string
 				headers.Add(k, v)
 			}
 		}
+	} else {
+		return types.ErrMissingBuilderConfig
 	}
-	opts := &RequestOptions{Headers: headers}
+
+	options.Headers = headers
+	url := c.relayerURL + path
+	return c.httpClient.Do(ctx, method, url, options, out)
+}
+
+func (c *RelayClient) sendAuthedRequest(ctx context.Context, method, path string, body string, out interface{}) error {
+	opts := &RequestOptions{}
 	if body != "" {
 		opts.Body = []byte(body)
 	}
