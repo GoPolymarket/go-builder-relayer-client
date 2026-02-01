@@ -1,12 +1,17 @@
 package types
 
-import "errors"
+import sdkerrors "github.com/GoPolymarket/go-builder-relayer-client/pkg/errors"
 
 var (
-	ErrSignerUnavailable    = errors.New("signer is needed to interact with this endpoint")
-	ErrSafeDeployed         = errors.New("safe already deployed")
-	ErrSafeNotDeployed      = errors.New("safe not deployed")
-	ErrConfigUnsupported    = errors.New("config is not supported on the chainId")
-	ErrMissingBuilderConfig = errors.New("builder config is required")
-	ErrMissingGasEstimator  = errors.New("gas estimator is required")
+	ErrSignerUnavailable    = sdkerrors.ErrSignerUnavailable
+	ErrSafeDeployed         = sdkerrors.ErrSafeDeployed
+	ErrSafeNotDeployed      = sdkerrors.ErrSafeNotDeployed
+	ErrConfigUnsupported    = sdkerrors.ErrConfigUnsupported
+	ErrMissingBuilderConfig = sdkerrors.ErrMissingBuilderConfig
+	ErrMissingGasEstimator  = sdkerrors.ErrMissingGasEstimator
+	ErrNoTransactions       = sdkerrors.ErrNoTransactions
+	ErrUnsupportedTxType    = sdkerrors.ErrUnsupportedTxType
+	ErrInvalidNoncePayload  = sdkerrors.ErrInvalidNoncePayload
+	ErrTransactionFailed    = sdkerrors.ErrTransactionFailed
+	ErrTransactionTimeout   = sdkerrors.ErrTransactionTimeout
 )

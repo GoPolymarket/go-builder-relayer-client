@@ -91,7 +91,7 @@ func (c *RelayClient) Execute(ctx context.Context, txns []types.Transaction, met
 		return nil, types.ErrSignerUnavailable
 	}
 	if len(txns) == 0 {
-		return nil, fmt.Errorf("no transactions to execute")
+		return nil, types.ErrNoTransactions
 	}
 
 	switch c.relayTxType {
@@ -116,7 +116,7 @@ func (c *RelayClient) Execute(ctx context.Context, txns []types.Transaction, met
 		}
 		return c.executeProxyTransactions(ctx, proxyTxns, metadata)
 	default:
-		return nil, fmt.Errorf("unsupported relay transaction type: %s", c.relayTxType)
+		return nil, fmt.Errorf("%w: %s", types.ErrUnsupportedTxType, c.relayTxType)
 	}
 }
 
@@ -192,7 +192,7 @@ func (c *RelayClient) executeSafeTransactions(ctx context.Context, txns []types.
 		return nil, err
 	}
 	if noncePayload.Nonce == "" {
-		return nil, fmt.Errorf("invalid nonce payload received")
+		return nil, types.ErrInvalidNoncePayload
 	}
 
 	args := types.SafeTransactionArgs{
@@ -304,12 +304,12 @@ func (c *RelayClient) PollUntilState(ctx context.Context, transactionID string, 
 				return &txn, nil
 			}
 			if failState != "" && txn.State == string(failState) {
-				return nil, fmt.Errorf("transaction failed onchain: %s", txn.TransactionHash)
+				return nil, fmt.Errorf("%w: %s", types.ErrTransactionFailed, txn.TransactionHash)
 			}
 		}
 		utils.Sleep(pollFrequency)
 	}
-	return nil, fmt.Errorf("transaction not found or not in desired state (timeout)")
+	return nil, types.ErrTransactionTimeout
 }
 
 func (c *RelayClient) send(ctx context.Context, path string, method string, options *RequestOptions, out interface{}) error {

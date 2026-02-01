@@ -9,6 +9,9 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	sdkerrors "github.com/GoPolymarket/go-builder-relayer-client/pkg/errors"
+	"github.com/GoPolymarket/go-builder-relayer-client/pkg/logger"
 )
 
 const (
@@ -37,10 +40,41 @@ func NewHTTPClient(client *http.Client) *HTTPClient {
 type HTTPError struct {
 	StatusCode int
 	Body       string
+	Err        *sdkerrors.SDKError
 }
 
 func (e *HTTPError) Error() string {
 	return fmt.Sprintf("http error: status %d body=%s", e.StatusCode, e.Body)
+}
+
+func (e *HTTPError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Err
+}
+
+func (e *HTTPError) Code() sdkerrors.ErrorCode {
+	if e == nil || e.Err == nil {
+		return ""
+	}
+	return e.Err.Code
+}
+
+func httpErrorForStatus(statusCode int) *sdkerrors.SDKError {
+	switch statusCode {
+	case http.StatusBadRequest:
+		return sdkerrors.ErrBadRequest
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return sdkerrors.ErrUnauthorized
+	case http.StatusTooManyRequests:
+		return sdkerrors.ErrTooManyRequests
+	default:
+		if statusCode >= 500 {
+			return sdkerrors.ErrInternalServerError
+		}
+	}
+	return nil
 }
 
 func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *RequestOptions, out interface{}) error {
@@ -65,6 +99,7 @@ func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *Reques
 	}
 
 	var lastErr error
+	maxAttempts := defaultMaxRetries + 1
 
 	for attempt := uint(0); attempt <= defaultMaxRetries; attempt++ {
 		if attempt > 0 {
@@ -108,6 +143,9 @@ func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *Reques
 		resp, err := c.client.Do(req)
 		if err != nil {
 			lastErr = fmt.Errorf("request failed: %w", err)
+			if attempt < defaultMaxRetries {
+				logger.Warn("http request failed (attempt %d/%d): %v", attempt+1, maxAttempts, err)
+			}
 			continue // Retry on network errors
 		}
 
@@ -118,17 +156,31 @@ func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *Reques
 
 		if err != nil {
 			lastErr = fmt.Errorf("read response: %w", err)
+			if attempt < defaultMaxRetries {
+				logger.Warn("http read response failed (attempt %d/%d): %v", attempt+1, maxAttempts, err)
+			}
 			continue
 		}
 
 		if resp.StatusCode >= 500 {
-			lastErr = &HTTPError{StatusCode: resp.StatusCode, Body: string(respBytes)}
+			lastErr = &HTTPError{
+				StatusCode: resp.StatusCode,
+				Body:       string(respBytes),
+				Err:        httpErrorForStatus(resp.StatusCode),
+			}
+			if attempt < defaultMaxRetries {
+				logger.Warn("http server error status %d (attempt %d/%d)", resp.StatusCode, attempt+1, maxAttempts)
+			}
 			continue // Retry on server errors
 		}
 
 		if resp.StatusCode >= 400 {
 			// Client error, do not retry
-			return &HTTPError{StatusCode: resp.StatusCode, Body: string(respBytes)}
+			return &HTTPError{
+				StatusCode: resp.StatusCode,
+				Body:       string(respBytes),
+				Err:        httpErrorForStatus(resp.StatusCode),
+			}
 		}
 
 		// Success
@@ -140,5 +192,8 @@ func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *Reques
 		return nil
 	}
 
+	if lastErr != nil {
+		logger.Error("http request failed after retries: %v", lastErr)
+	}
 	return fmt.Errorf("max retries exceeded: %w", lastErr)
 }
