@@ -11,7 +11,6 @@ import (
 
 	"github.com/GoPolymarket/go-builder-relayer-client/internal/builder"
 	"github.com/GoPolymarket/go-builder-relayer-client/internal/encoder"
-	"github.com/GoPolymarket/go-builder-relayer-client/internal/utils"
 	"github.com/GoPolymarket/go-builder-relayer-client/pkg/signer"
 	"github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
 )
@@ -25,6 +24,7 @@ type RelayClient struct {
 	httpClient     *HTTPClient
 	signer         signer.Signer
 	builderConfig  *BuilderConfig
+	sleepFn        func(context.Context, time.Duration) error
 }
 
 func NewRelayClient(relayerURL string, chainID int64, signer signer.Signer, builderConfig *BuilderConfig, relayTxType types.RelayerTxType) (*RelayClient, error) {
@@ -45,6 +45,7 @@ func NewRelayClient(relayerURL string, chainID int64, signer signer.Signer, buil
 		httpClient:     NewHTTPClient(nil),
 		signer:         signer,
 		builderConfig:  builderConfig,
+		sleepFn:        sleepWithContext,
 	}, nil
 }
 
@@ -145,7 +146,7 @@ func (c *RelayClient) executeProxyTransactions(ctx context.Context, txns []types
 		Nonce:    relayPayload.Nonce,
 	}
 
-	request, err := builder.BuildProxyTransactionRequest(c.signer, args, c.contractConfig.ProxyContracts, metadata)
+	request, err := builder.BuildProxyTransactionRequest(ctx, c.signer, args, c.contractConfig.ProxyContracts, metadata)
 	if err != nil {
 		return nil, err
 	}
@@ -274,6 +275,21 @@ func (c *RelayClient) deploySafe(ctx context.Context) (*ClientRelayerTransaction
 	}, nil
 }
 
+func sleepWithContext(ctx context.Context, d time.Duration) error {
+	if d <= 0 {
+		return nil
+	}
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
 func (c *RelayClient) PollUntilState(ctx context.Context, transactionID string, states []types.RelayerTransactionState, failState types.RelayerTransactionState, maxPolls int, pollFrequency time.Duration) (*types.RelayerTransaction, error) {
 	stateSet := map[string]bool{}
 	for _, s := range states {
@@ -307,7 +323,17 @@ func (c *RelayClient) PollUntilState(ctx context.Context, transactionID string, 
 				return nil, fmt.Errorf("%w: %s", types.ErrTransactionFailed, txn.TransactionHash)
 			}
 		}
-		utils.Sleep(pollFrequency)
+
+		if i == maxPolls-1 {
+			continue
+		}
+		sleepFn := c.sleepFn
+		if sleepFn == nil {
+			sleepFn = sleepWithContext
+		}
+		if err := sleepFn(ctx, pollFrequency); err != nil {
+			return nil, err
+		}
 	}
 	return nil, types.ErrTransactionTimeout
 }

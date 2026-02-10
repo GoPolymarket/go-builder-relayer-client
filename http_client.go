@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	sdkerrors "github.com/GoPolymarket/go-builder-relayer-client/pkg/errors"
@@ -77,9 +79,44 @@ func httpErrorForStatus(statusCode int) *sdkerrors.SDKError {
 	return nil
 }
 
+func parseRetryAfter(value string, now time.Time) (time.Duration, bool) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return 0, false
+	}
+
+	seconds, err := strconv.Atoi(trimmed)
+	if err == nil {
+		if seconds <= 0 {
+			return 0, true
+		}
+		return time.Duration(seconds) * time.Second, true
+	}
+
+	retryTime, err := http.ParseTime(trimmed)
+	if err != nil {
+		return 0, false
+	}
+	if !retryTime.After(now) {
+		return 0, true
+	}
+	return retryTime.Sub(now), true
+}
+
+func exponentialBackoff(attempt uint) time.Duration {
+	exp := attempt
+	if exp > maxBackoffExponent {
+		exp = maxBackoffExponent
+	}
+	return defaultBaseDelay * time.Duration(1<<exp)
+}
+
 func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *RequestOptions, out interface{}) error {
 	if c == nil {
 		return fmt.Errorf("http client is nil")
+	}
+	if ctx == nil {
+		ctx = context.Background()
 	}
 	if opts == nil {
 		opts = &RequestOptions{}
@@ -100,19 +137,17 @@ func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *Reques
 
 	var lastErr error
 	maxAttempts := defaultMaxRetries + 1
+	var nextRetryDelay *time.Duration
 
 	for attempt := uint(0); attempt <= defaultMaxRetries; attempt++ {
 		if attempt > 0 {
-			// Exponential backoff with jitter could be better, but simple exponential is fine for now
-			exp := attempt - 1
-			if exp > maxBackoffExponent {
-				exp = maxBackoffExponent
+			delay := exponentialBackoff(attempt - 1)
+			if nextRetryDelay != nil {
+				delay = *nextRetryDelay
+				nextRetryDelay = nil
 			}
-			delay := defaultBaseDelay * time.Duration(1<<exp)
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(delay):
+			if err := sleepWithContext(ctx, delay); err != nil {
+				return err
 			}
 		}
 
@@ -162,25 +197,28 @@ func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *Reques
 			continue
 		}
 
-		if resp.StatusCode >= 500 {
-			lastErr = &HTTPError{
-				StatusCode: resp.StatusCode,
-				Body:       string(respBytes),
-				Err:        httpErrorForStatus(resp.StatusCode),
-			}
+		httpErr := &HTTPError{
+			StatusCode: resp.StatusCode,
+			Body:       string(respBytes),
+			Err:        httpErrorForStatus(resp.StatusCode),
+		}
+
+		if resp.StatusCode >= 500 || resp.StatusCode == http.StatusTooManyRequests {
+			lastErr = httpErr
 			if attempt < defaultMaxRetries {
-				logger.Warn("http server error status %d (attempt %d/%d)", resp.StatusCode, attempt+1, maxAttempts)
+				if resp.StatusCode == http.StatusTooManyRequests {
+					if retryDelay, ok := parseRetryAfter(resp.Header.Get("Retry-After"), time.Now()); ok {
+						nextRetryDelay = &retryDelay
+					}
+				}
+				logger.Warn("http retryable status %d (attempt %d/%d)", resp.StatusCode, attempt+1, maxAttempts)
 			}
-			continue // Retry on server errors
+			continue
 		}
 
 		if resp.StatusCode >= 400 {
-			// Client error, do not retry
-			return &HTTPError{
-				StatusCode: resp.StatusCode,
-				Body:       string(respBytes),
-				Err:        httpErrorForStatus(resp.StatusCode),
-			}
+			// Client error (except 429), do not retry.
+			return httpErr
 		}
 
 		// Success
@@ -194,6 +232,7 @@ func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *Reques
 
 	if lastErr != nil {
 		logger.Error("http request failed after retries: %v", lastErr)
+		return fmt.Errorf("max retries exceeded: %w", lastErr)
 	}
-	return fmt.Errorf("max retries exceeded: %w", lastErr)
+	return fmt.Errorf("max retries exceeded")
 }

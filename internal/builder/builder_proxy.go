@@ -76,14 +76,14 @@ func createProxyStructHash(
 	return hash, nil
 }
 
-func BuildProxyTransactionRequest(s signer.Signer, args types.ProxyTransactionArgs, proxyContractConfig types.ProxyContractConfig, metadata string) (*types.TransactionRequest, error) {
+func BuildProxyTransactionRequest(ctx context.Context, s signer.Signer, args types.ProxyTransactionArgs, proxyContractConfig types.ProxyContractConfig, metadata string) (*types.TransactionRequest, error) {
 	proxyFactory := proxyContractConfig.ProxyFactory
 	proxyWallet, err := DeriveProxyWalletAddress(args.From, proxyFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	gasLimitStr, err := getGasLimit(context.Background(), s, proxyFactory, args)
+	gasLimitStr, err := getGasLimit(ctx, s, proxyFactory, args)
 	if err != nil {
 		gasLimitStr = fmt.Sprintf("%d", defaultGasLimit)
 	}
@@ -133,6 +133,9 @@ func BuildProxyTransactionRequest(s signer.Signer, args types.ProxyTransactionAr
 func getGasLimit(ctx context.Context, s signer.Signer, to string, args types.ProxyTransactionArgs) (string, error) {
 	if args.GasLimit != "" && args.GasLimit != "0" {
 		return args.GasLimit, nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
 	}
 	toAddr := common.HexToAddress(to)
 	dataBytes, err := utils.DecodeHex(args.Data)
