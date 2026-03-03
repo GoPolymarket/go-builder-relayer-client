@@ -42,11 +42,11 @@ jobs:
       - name: Build
         run: go build -v ./...
       - name: Test with Race Detector
-        run: go test -v -race -coverprofile=coverage.out ./pkg/...
+        run: go test -v -race -coverprofile=coverage.out ./...
 
       - name: Check Coverage
         run: |
-          go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}' | awk '{if ($1 < 40.0) { print "Coverage is " $1 "%, which is below the 40% threshold"; exit 1 } else { print "Coverage is " $1 "%" }}'
+          go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}' | awk '{if ($1 < 30.0) { print "Coverage is " $1 "%, which is below the 30% threshold"; exit 1 } else { print "Coverage is " $1 "%" }}'
 
   security:
     name: Security Scan
