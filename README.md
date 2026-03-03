@@ -4,25 +4,41 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/GoPolymarket/go-builder-relayer-client)](https://goreportcard.com/report/github.com/GoPolymarket/go-builder-relayer-client)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=GoPolymarket/go-builder-relayer-client&type=Date)](https://www.star-history.com/#GoPolymarket/go-builder-relayer-client&Date)
-
 **Official docs alignment:** Implements Polymarket Order Attribution (builder auth headers for leaderboard/grants) and the Relayer Client flow (gasless transactions + Safe/Proxy deployment; builder authentication required with remote signing recommended); official docs: [Order Attribution](https://docs.polymarket.com/developers/builders/order-attribution), [Relayer Client](https://docs.polymarket.com/developers/builders/relayer-client).
 
 A robust, type-safe Go client library for interacting with the **Polymarket Relayer** infrastructure. This SDK enables developers to execute gasless meta-transactions on Polygon, seamlessly integrating with Polymarket's exchange protocol.
 
-## 🚀 Features
+## Current Architecture Snapshot
 
-- **Gasless Transactions**: Submit transactions via Polymarket's Relayer without holding MATIC for gas.
-- **Dual Wallet Support**: Full support for both **Gnosis Safe** (Smart Account) and **Proxy** (EOA-like) wallet architectures.
-- **Builder Attribution**: Native support for the Polymarket Builder Rewards program, supporting both:
-  - **Local Signing**: Manage API keys locally.
-  - **Remote Signing**: Delegate signing to a secure remote service.
-  - **Remote Fallback Local**: Optionally try remote signer first, then fallback to local signing credentials.
-- **Resilient Networking**: Built-in automatic retries with exponential backoff for network stability.
-- **EIP-712 Compliance**: Automated handling of EIP-712 typed data signing and domain separation.
-- **Developer Friendly**: Comprehensive error handling, context support, and helper utilities for address derivation.
+The client is structured as a relayer execution stack:
+
+- **Client facade**: `RelayClient` coordinates deploy/execute/read flows.
+- **Transaction mode layer**: Safe (`RelayerTxSafe`) and Proxy (`RelayerTxProxy`) pipelines.
+- **Builder auth layer**: Local credentials, remote signer, or `RemoteFallbackLocal` hybrid mode.
+- **Signer layer**: EIP-712 transaction signatures and deterministic address derivation utilities.
+- **Transport layer**: Retry/backoff handling, typed responses, and receipt polling.
+
+```mermaid
+graph TD
+    App[Trading Service] --> Client[RelayClient]
+    Client --> TxMode[Tx Mode Adapter]
+    TxMode --> Safe[RelayerTxSafe]
+    TxMode --> Proxy[RelayerTxProxy]
+    Client --> BuilderAuth[Builder Auth]
+    BuilderAuth --> Local[Local HMAC Signer]
+    BuilderAuth --> Remote[Remote Signer Service]
+    BuilderAuth --> Fallback[RemoteFallbackLocal]
+    Client --> Relayer[Polymarket Relayer API]
+```
+
+## Core Capabilities
+
+- **Gasless transaction execution**: Submit meta-transactions without holding MATIC.
+- **Safe and Proxy account support**: Shared API surface for both wallet architectures.
+- **Builder authentication coverage**: Auth headers on `submit`, `transactions`, `transaction`, `deployed`, `nonce`, and `relay-payload`.
+- **Remote-first signing resilience**: Optional remote signing with local fallback (`RemoteFallbackLocal`).
+- **Network robustness**: Built-in retries and wait helpers for transaction finality.
+- **Developer ergonomics**: Typed errors, context-aware APIs, and runnable end-to-end examples.
 
 ## 📦 Installation
 
