@@ -15,6 +15,7 @@ A robust, type-safe Go client library for interacting with the **Polymarket Rela
 - **Builder Attribution**: Native support for the Polymarket Builder Rewards program, supporting both:
   - **Local Signing**: Manage API keys locally.
   - **Remote Signing**: Delegate signing to a secure remote service.
+  - **Remote Fallback Local**: Optionally try remote signer first, then fallback to local signing credentials.
 - **Resilient Networking**: Built-in automatic retries with exponential backoff for network stability.
 - **EIP-712 Compliance**: Automated handling of EIP-712 typed data signing and domain separation.
 - **Developer Friendly**: Comprehensive error handling, context support, and helper utilities for address derivation.
@@ -41,6 +42,8 @@ The client can be configured using a struct or environment variables. Below are 
 | `BUILDER_REMOTE_TOKEN` | Bearer token for remote signer (optional) | ❌ | `...` |
 
 *`BUILDER_API_KEY`, `BUILDER_SECRET`, and `BUILDER_PASS_PHRASE` are required only for local signing.*
+
+You can also configure both `Remote` and `Local` in `BuilderConfig`, then set `RemoteFallbackLocal: true` to enable a remote-first fallback path when remote signing is unavailable.
 
 ## ⚡ Quick Start
 

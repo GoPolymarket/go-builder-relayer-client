@@ -58,6 +58,8 @@ type BuilderRemoteConfig struct {
 type BuilderConfig struct {
 	Local  *BuilderCredentials
 	Remote *BuilderRemoteConfig
+	// RemoteFallbackLocal enables remote-first signing with local fallback when both configs are provided.
+	RemoteFallbackLocal bool
 }
 
 // IsValid returns true if the configuration has sufficient credentials.
@@ -65,11 +67,17 @@ func (c *BuilderConfig) IsValid() bool {
 	if c == nil {
 		return false
 	}
+	localValid := c.Local != nil && c.Local.Key != "" && c.Local.Secret != "" && c.Local.Passphrase != ""
+	remoteValid := c.Remote != nil && c.Remote.Host != ""
+
+	if c.RemoteFallbackLocal {
+		return remoteValid || localValid
+	}
 	if c.Local != nil {
-		return c.Local.Key != "" && c.Local.Secret != "" && c.Local.Passphrase != ""
+		return localValid
 	}
 	if c.Remote != nil {
-		return c.Remote.Host != ""
+		return remoteValid
 	}
 	return false
 }
@@ -78,6 +86,17 @@ func (c *BuilderConfig) IsValid() bool {
 func (c *BuilderConfig) Headers(ctx context.Context, method, path string, body *string, timestamp int64) (http.Header, error) {
 	if c == nil {
 		return nil, types.ErrMissingBuilderConfig
+	}
+	if c.RemoteFallbackLocal && c.Remote != nil && c.Local != nil {
+		headers, remoteErr := buildBuilderHeadersRemote(ctx, c.Remote, method, path, body, timestamp)
+		if remoteErr == nil {
+			return headers, nil
+		}
+		headers, localErr := buildBuilderHeadersLocal(c.Local, method, path, body, timestamp)
+		if localErr == nil {
+			return headers, nil
+		}
+		return nil, fmt.Errorf("builder remote fallback local failed: remote=%v local=%v", remoteErr, localErr)
 	}
 	if c.Local != nil {
 		return buildBuilderHeadersLocal(c.Local, method, path, body, timestamp)
