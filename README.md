@@ -4,6 +4,10 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/GoPolymarket/go-builder-relayer-client)](https://goreportcard.com/report/github.com/GoPolymarket/go-builder-relayer-client)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=GoPolymarket/go-builder-relayer-client&type=Date)](https://www.star-history.com/#GoPolymarket/go-builder-relayer-client&Date)
+
 **Official docs alignment:** Implements Polymarket Order Attribution (builder auth headers for leaderboard/grants) and the Relayer Client flow (gasless transactions + Safe/Proxy deployment; builder authentication required with remote signing recommended); official docs: [Order Attribution](https://docs.polymarket.com/developers/builders/order-attribution), [Relayer Client](https://docs.polymarket.com/developers/builders/relayer-client).
 
 A robust, type-safe Go client library for interacting with the **Polymarket Relayer** infrastructure. This SDK enables developers to execute gasless meta-transactions on Polygon, seamlessly integrating with Polymarket's exchange protocol.
