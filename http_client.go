@@ -20,6 +20,8 @@ const (
 	defaultMaxRetries  = uint(3)
 	defaultBaseDelay   = 500 * time.Millisecond
 	maxBackoffExponent = uint(10)
+	defaultHTTPTimeout = 30 * time.Second
+	maxErrorBodyChars  = 512
 )
 
 type RequestOptions struct {
@@ -34,7 +36,7 @@ type HTTPClient struct {
 
 func NewHTTPClient(client *http.Client) *HTTPClient {
 	if client == nil {
-		client = http.DefaultClient
+		client = &http.Client{Timeout: defaultHTTPTimeout}
 	}
 	return &HTTPClient{client: client}
 }
@@ -46,7 +48,11 @@ type HTTPError struct {
 }
 
 func (e *HTTPError) Error() string {
-	return fmt.Sprintf("http error: status %d body=%s", e.StatusCode, e.Body)
+	body := e.Body
+	if len(body) > maxErrorBodyChars {
+		body = body[:maxErrorBodyChars] + "...(truncated)"
+	}
+	return fmt.Sprintf("http error: status %d body=%s", e.StatusCode, body)
 }
 
 func (e *HTTPError) Unwrap() error {

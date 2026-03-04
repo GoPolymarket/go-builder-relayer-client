@@ -168,7 +168,7 @@ func buildBuilderHeadersRemote(ctx context.Context, remote *BuilderRemoteConfig,
 
 	client := remote.HTTPClient
 	if client == nil {
-		client = http.DefaultClient
+		client = &http.Client{Timeout: 10 * time.Second}
 	}
 	resp, err := client.Do(req)
 	if err != nil {
