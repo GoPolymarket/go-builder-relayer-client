@@ -40,6 +40,22 @@ graph TD
 - **Network robustness**: Built-in retries and wait helpers for transaction finality.
 - **Developer ergonomics**: Typed errors, context-aware APIs, and runnable end-to-end examples.
 
+## Weekly Compatibility Evidence
+
+Generate and archive a weekly compatibility artifact with checksums:
+
+```bash
+./scripts/compatibility-evidence.sh --out-dir artifacts/compatibility
+```
+
+Optional command center linkage (for cross-service traceability):
+
+```bash
+./scripts/compatibility-evidence.sh \
+  --out-dir artifacts/compatibility \
+  --command-center ../delivery/outputs/CEO_COMMAND_CENTER_LATEST.md
+```
+
 ## 📦 Installation
 
 ```bash
