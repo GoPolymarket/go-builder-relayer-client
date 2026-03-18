@@ -41,7 +41,7 @@ func CreateSafeMultisendTransaction(txns []types.SafeTransaction, safeMultisendA
 }
 
 func encodePackedMultisend(txns []types.SafeTransaction) ([]byte, error) {
-	out := make([]byte, 0)
+	out := make([]byte, 0, 85*len(txns))
 	for _, tx := range txns {
 		to := common.HexToAddress(tx.To)
 		value, err := utils.ParseBigInt(tx.Value)

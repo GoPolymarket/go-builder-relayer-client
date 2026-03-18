@@ -145,7 +145,7 @@ type RelayerTransaction struct {
 	Data            string    `json:"data"`
 	Nonce           string    `json:"nonce"`
 	Value           string    `json:"value"`
-	State           string    `json:"state"`
+	State           RelayerTransactionState `json:"state"`
 	Type            string    `json:"type"`
 	Metadata        string    `json:"metadata"`
 	CreatedAt       time.Time `json:"createdAt"`

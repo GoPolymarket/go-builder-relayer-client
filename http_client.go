@@ -31,14 +31,37 @@ type RequestOptions struct {
 }
 
 type HTTPClient struct {
-	client *http.Client
+	client     *http.Client
+	maxRetries uint
+	baseDelay  time.Duration
 }
 
-func NewHTTPClient(client *http.Client) *HTTPClient {
+// HTTPClientOption configures an HTTPClient.
+type HTTPClientOption func(*HTTPClient)
+
+// WithMaxRetries sets the maximum number of retries for failed requests.
+func WithMaxRetries(n uint) HTTPClientOption {
+	return func(c *HTTPClient) { c.maxRetries = n }
+}
+
+// WithBaseDelay sets the base delay for exponential backoff between retries.
+func WithBaseDelay(d time.Duration) HTTPClientOption {
+	return func(c *HTTPClient) { c.baseDelay = d }
+}
+
+func NewHTTPClient(client *http.Client, opts ...HTTPClientOption) *HTTPClient {
 	if client == nil {
 		client = &http.Client{Timeout: defaultHTTPTimeout}
 	}
-	return &HTTPClient{client: client}
+	hc := &HTTPClient{
+		client:     client,
+		maxRetries: defaultMaxRetries,
+		baseDelay:  defaultBaseDelay,
+	}
+	for _, opt := range opts {
+		opt(hc)
+	}
+	return hc
 }
 
 type HTTPError struct {
@@ -109,12 +132,12 @@ func parseRetryAfter(value string, now time.Time) (time.Duration, bool) {
 	return retryTime.Sub(now), true
 }
 
-func exponentialBackoff(attempt uint) time.Duration {
+func exponentialBackoff(baseDelay time.Duration, attempt uint) time.Duration {
 	exp := attempt
 	if exp > maxBackoffExponent {
 		exp = maxBackoffExponent
 	}
-	return defaultBaseDelay * time.Duration(1<<exp)
+	return baseDelay * time.Duration(1<<exp)
 }
 
 func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *RequestOptions, out interface{}) error {
@@ -142,12 +165,12 @@ func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *Reques
 	}
 
 	var lastErr error
-	maxAttempts := defaultMaxRetries + 1
+	maxAttempts := c.maxRetries + 1
 	var nextRetryDelay *time.Duration
 
-	for attempt := uint(0); attempt <= defaultMaxRetries; attempt++ {
+	for attempt := uint(0); attempt <= c.maxRetries; attempt++ {
 		if attempt > 0 {
-			delay := exponentialBackoff(attempt - 1)
+			delay := exponentialBackoff(c.baseDelay, attempt-1)
 			if nextRetryDelay != nil {
 				delay = *nextRetryDelay
 				nextRetryDelay = nil
@@ -184,8 +207,8 @@ func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *Reques
 		resp, err := c.client.Do(req)
 		if err != nil {
 			lastErr = fmt.Errorf("request failed: %w", err)
-			if attempt < defaultMaxRetries {
-				logger.Warn("http request failed (attempt %d/%d): %v", attempt+1, maxAttempts, err)
+			if attempt < c.maxRetries {
+				logger.Warn("%s %s: request failed (attempt %d/%d): %v", method, urlStr, attempt+1, maxAttempts, err)
 			}
 			continue // Retry on network errors
 		}
@@ -197,8 +220,8 @@ func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *Reques
 
 		if err != nil {
 			lastErr = fmt.Errorf("read response: %w", err)
-			if attempt < defaultMaxRetries {
-				logger.Warn("http read response failed (attempt %d/%d): %v", attempt+1, maxAttempts, err)
+			if attempt < c.maxRetries {
+				logger.Warn("%s %s: read response failed (attempt %d/%d): %v", method, urlStr, attempt+1, maxAttempts, err)
 			}
 			continue
 		}
@@ -211,13 +234,13 @@ func (c *HTTPClient) Do(ctx context.Context, method, urlStr string, opts *Reques
 
 		if resp.StatusCode >= 500 || resp.StatusCode == http.StatusTooManyRequests {
 			lastErr = httpErr
-			if attempt < defaultMaxRetries {
+			if attempt < c.maxRetries {
 				if resp.StatusCode == http.StatusTooManyRequests {
 					if retryDelay, ok := parseRetryAfter(resp.Header.Get("Retry-After"), time.Now()); ok {
 						nextRetryDelay = &retryDelay
 					}
 				}
-				logger.Warn("http retryable status %d (attempt %d/%d)", resp.StatusCode, attempt+1, maxAttempts)
+				logger.Warn("%s %s: retryable status %d (attempt %d/%d)", method, urlStr, resp.StatusCode, attempt+1, maxAttempts)
 			}
 			continue
 		}

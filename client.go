@@ -122,9 +122,6 @@ func (c *RelayClient) Execute(ctx context.Context, txns []types.Transaction, met
 }
 
 func (c *RelayClient) executeProxyTransactions(ctx context.Context, txns []types.ProxyTransaction, metadata string) (*ClientRelayerTransactionResponse, error) {
-	if c.signer == nil {
-		return nil, types.ErrSignerUnavailable
-	}
 	if !IsProxyContractConfigValid(c.contractConfig.ProxyContracts) {
 		return nil, types.ErrConfigUnsupported
 	}
@@ -169,9 +166,6 @@ func (c *RelayClient) executeProxyTransactions(ctx context.Context, txns []types
 }
 
 func (c *RelayClient) executeSafeTransactions(ctx context.Context, txns []types.SafeTransaction, metadata string) (*ClientRelayerTransactionResponse, error) {
-	if c.signer == nil {
-		return nil, types.ErrSignerUnavailable
-	}
 	if !IsSafeContractConfigValid(c.contractConfig.SafeContracts) {
 		return nil, types.ErrConfigUnsupported
 	}
@@ -291,9 +285,9 @@ func sleepWithContext(ctx context.Context, d time.Duration) error {
 }
 
 func (c *RelayClient) PollUntilState(ctx context.Context, transactionID string, states []types.RelayerTransactionState, failState types.RelayerTransactionState, maxPolls int, pollFrequency time.Duration) (*types.RelayerTransaction, error) {
-	stateSet := map[string]bool{}
+	stateSet := make(map[types.RelayerTransactionState]struct{}, len(states))
 	for _, s := range states {
-		stateSet[string(s)] = true
+		stateSet[s] = struct{}{}
 	}
 
 	if maxPolls <= 0 {
@@ -316,10 +310,10 @@ func (c *RelayClient) PollUntilState(ctx context.Context, transactionID string, 
 		}
 		if len(txns) > 0 {
 			txn := txns[0]
-			if stateSet[txn.State] {
+			if _, ok := stateSet[txn.State]; ok {
 				return &txn, nil
 			}
-			if failState != "" && txn.State == string(failState) {
+			if failState != "" && txn.State == failState {
 				return nil, fmt.Errorf("%w: %s", types.ErrTransactionFailed, txn.TransactionHash)
 			}
 		}

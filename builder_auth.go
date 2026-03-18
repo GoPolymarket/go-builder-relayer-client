@@ -9,10 +9,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/GoPolymarket/go-builder-relayer-client/pkg/types"
 )
+
+var (
+	defaultRemoteClientOnce sync.Once
+	defaultRemoteClient     *http.Client
+)
+
+func getDefaultRemoteClient() *http.Client {
+	defaultRemoteClientOnce.Do(func() {
+		defaultRemoteClient = &http.Client{Timeout: 10 * time.Second}
+	})
+	return defaultRemoteClient
+}
 
 const (
 	// #nosec G101 -- header names, not hardcoded credentials.
@@ -168,7 +181,7 @@ func buildBuilderHeadersRemote(ctx context.Context, remote *BuilderRemoteConfig,
 
 	client := remote.HTTPClient
 	if client == nil {
-		client = &http.Client{Timeout: 10 * time.Second}
+		client = getDefaultRemoteClient()
 	}
 	resp, err := client.Do(req)
 	if err != nil {

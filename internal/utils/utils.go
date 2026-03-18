@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
@@ -72,6 +71,3 @@ func SplitAndPackSig(sig []byte) (string, error) {
 	return hexutil.Encode(packed), nil
 }
 
-func Sleep(duration time.Duration) {
-	time.Sleep(duration)
-}
